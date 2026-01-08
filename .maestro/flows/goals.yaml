@@ -1,0 +1,202 @@
+# FlowDay Goals E2E Flow
+# Tests goal creation, viewing, editing, and deletion
+#
+# Prerequisites:
+# - User must be logged in
+# - Set TEST_EMAIL and TEST_PASSWORD if starting fresh
+
+appId: com.flowday.app
+tags:
+  - critical
+  - goals
+  - smoke
+
+---
+
+# Launch app
+- launchApp:
+    clearState: false
+
+# Wait for app to load
+- waitForAnimationToEnd
+
+# ===== Sign In If Needed =====
+
+- runFlow:
+    when:
+      visible:
+        id: "signin-email-input"
+    commands:
+      - tapOn:
+          id: "signin-email-input"
+      - inputText: "${TEST_EMAIL}"
+      - tapOn:
+          id: "signin-password-input"
+      - inputText: "${TEST_PASSWORD}"
+      - tapOn:
+          id: "signin-submit-button"
+      - waitForAnimationToEnd:
+          timeout: 10000
+      # Skip onboarding if present
+      - runFlow:
+          when:
+            visible: "Welcome to FlowDay"
+          commands:
+            - tapOn:
+                id: "onboarding-get-started"
+            - waitForAnimationToEnd
+            - repeat:
+                times: 4
+                commands:
+                  - tapOn:
+                      id: "onboarding-continue"
+                  - waitForAnimationToEnd
+            - tapOn:
+                text: "Finish"
+                optional: true
+            - waitForAnimationToEnd
+
+# ===== Navigate to Goals Tab =====
+
+- tapOn: "Goals tab - manage your goals"
+- waitForAnimationToEnd
+
+# Verify we're on the Goals screen
+- assertVisible:
+    text: "Goals"
+    timeout: 5000
+
+# Take screenshot of initial state
+- takeScreenshot: goals_initial
+
+# ===== Create Goal Flow =====
+
+# Check for empty state or existing goals
+- runFlow:
+    when:
+      visible: "No goals yet"
+    commands:
+      # Empty state - use the CTA button
+      - takeScreenshot: goals_empty_state
+      - tapOn: "Create Goal"
+      - waitForAnimationToEnd
+
+# If goals exist, use FAB
+- runFlow:
+    when:
+      visible:
+        id: "goals-add-button"
+    commands:
+      - tapOn:
+          id: "goals-add-button"
+      - waitForAnimationToEnd
+
+# ===== Fill Out Goal Form =====
+
+# Should now be on the create goal modal
+- assertVisible: "Create New Goal"
+
+# Enter goal title - test with a reasonably long title
+- tapOn:
+    id: "goals-title-input"
+- inputText: "E2E Test Goal - Learn Advanced Spanish"
+
+# Scroll down to see more options
+- scroll:
+    direction: DOWN
+
+# Select a category (using text since categories don't have testIDs)
+- tapOn:
+    text: "Learning"
+    optional: true
+
+# Select weekly target
+- tapOn:
+    text: "5h"
+    optional: true
+
+# Scroll to see submit button
+- scroll:
+    direction: DOWN
+
+# Take screenshot of filled form
+- takeScreenshot: goals_form_filled
+
+# Save the goal
+- tapOn:
+    id: "goals-save-button"
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# ===== Verify Goal Created =====
+
+# Should be back on goals list
+- assertVisible:
+    text: "E2E Test Goal"
+    timeout: 5000
+
+- takeScreenshot: goals_after_create
+
+# ===== View Goal Details =====
+
+# Tap on the created goal to view details
+- tapOn:
+    text: "E2E Test Goal"
+- waitForAnimationToEnd
+
+# Verify we're on the goal detail screen
+- takeScreenshot: goals_detail_view
+
+# ===== Test Long Title Truncation =====
+# The title should be visible but may be truncated on smaller screens
+- assertVisible:
+    text: "E2E Test Goal"
+
+# Go back to goals list
+- back
+- waitForAnimationToEnd
+
+# ===== Goals List Verification =====
+
+# Verify goals list is visible
+- runFlow:
+    when:
+      visible:
+        id: "goals-list"
+    commands:
+      - assertVisible:
+          id: "goals-list"
+      - takeScreenshot: goals_list_view
+
+# ===== Delete Goal (Clean up) =====
+
+# Long press to trigger delete action (if available)
+# Note: This depends on how delete is implemented in the app
+- longPressOn:
+    text: "E2E Test Goal"
+    optional: true
+- waitForAnimationToEnd
+
+# If delete confirmation appears, confirm
+- runFlow:
+    when:
+      visible: "Delete"
+    commands:
+      - tapOn: "Delete"
+      - waitForAnimationToEnd
+      - takeScreenshot: goals_after_delete
+
+# ===== Navigation Test =====
+
+# Navigate back to Timeline
+- tapOn: "Today tab - view your timeline"
+- waitForAnimationToEnd
+- assertVisible:
+    id: "timeline-today-tab"
+
+# Navigate back to Goals
+- tapOn: "Goals tab - manage your goals"
+- waitForAnimationToEnd
+
+# Final screenshot
+- takeScreenshot: goals_flow_complete

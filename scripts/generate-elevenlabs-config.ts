@@ -1,0 +1,329 @@
+#!/usr/bin/env bun
+/**
+ * Script to generate ElevenLabs dashboard configuration JSON.
+ *
+ * Phase 7: Testing & Documentation
+ * Generates the tool configuration for the ElevenLabs dashboard.
+ *
+ * Usage: bun run scripts/generate-elevenlabs-config.ts
+ */
+
+import { writeFileSync } from "fs";
+import { join } from "path";
+
+// Since we can't import the actual registry (it has Convex dependencies),
+// we'll define the tool configurations directly here based on the registry.
+
+interface ElevenLabsParameter {
+  type: string;
+  description: string;
+  default?: unknown;
+  enum?: string[];
+  minimum?: number;
+  maximum?: number;
+  items?: ElevenLabsParameter;
+  properties?: Record<string, ElevenLabsParameter>;
+  required?: string[];
+}
+
+interface ElevenLabsTool {
+  type: "function";
+  function: {
+    name: string;
+    description: string;
+    parameters: {
+      type: "object";
+      properties: Record<string, ElevenLabsParameter>;
+      required: string[];
+    };
+  };
+}
+
+interface ElevenLabsConfig {
+  tools: ElevenLabsTool[];
+  metadata: {
+    generatedAt: string;
+    toolCount: number;
+    version: string;
+  };
+}
+
+// Tool definitions matching the registry
+const tools: ElevenLabsTool[] = [
+  // Tool 1: getScheduleForDate
+  {
+    type: "function",
+    function: {
+      name: "getScheduleForDate",
+      description: "Get all scheduled blocks for a specific date. Returns an array of blocks with their times, titles, and status.",
+      parameters: {
+        type: "object",
+        properties: {
+          date: {
+            type: "string",
+            description: "The date to get schedule for (format: YYYY-MM-DD)",
+          },
+        },
+        required: ["date"],
+      },
+    },
+  },
+  // Tool 2: addTaskToSchedule
+  {
+    type: "function",
+    function: {
+      name: "addTaskToSchedule",
+      description: "Add a new task/block to the schedule. Requires title, date, and time. Optionally link to a goal.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: {
+            type: "string",
+            description: "The title/name of the task",
+          },
+          date: {
+            type: "string",
+            description: "The date for the task (format: YYYY-MM-DD)",
+          },
+          startTime: {
+            type: "string",
+            description: "Start time (format: HH:mm, 24-hour)",
+          },
+          endTime: {
+            type: "string",
+            description: "End time (format: HH:mm, 24-hour)",
+          },
+          requiresTravel: {
+            type: "boolean",
+            description: "Whether this task requires travel",
+            default: false,
+          },
+          goalId: {
+            type: "string",
+            description: "Optional goal ID to link this task to (document ID)",
+          },
+        },
+        required: ["title", "date", "startTime", "endTime"],
+      },
+    },
+  },
+  // Tool 3: deleteBlock
+  {
+    type: "function",
+    function: {
+      name: "deleteBlock",
+      description: "Delete a scheduled block from the calendar [Requires user confirmation before executing]",
+      parameters: {
+        type: "object",
+        properties: {
+          blockId: {
+            type: "string",
+            description: "The ID of the block to delete (document ID)",
+          },
+        },
+        required: ["blockId"],
+      },
+    },
+  },
+  // Tool 4: updateBlock
+  {
+    type: "function",
+    function: {
+      name: "updateBlock",
+      description: "Update an existing block's title, time, date, or other properties. Use newDate to move to a different day.",
+      parameters: {
+        type: "object",
+        properties: {
+          blockId: {
+            type: "string",
+            description: "The ID of the block to update (document ID)",
+          },
+          title: {
+            type: "string",
+            description: "New title for the block",
+          },
+          description: {
+            type: "string",
+            description: "New description for the block",
+          },
+          startTime: {
+            type: "string",
+            description: "New start time (format: HH:mm, 24-hour)",
+          },
+          endTime: {
+            type: "string",
+            description: "New end time (format: HH:mm, 24-hour)",
+          },
+          newDate: {
+            type: "string",
+            description: "New date to move the block to (format: YYYY-MM-DD)",
+          },
+          energyLevel: {
+            type: "string",
+            description: "Energy level required for this task",
+            enum: ["high", "medium", "low"],
+          },
+        },
+        required: ["blockId"],
+      },
+    },
+  },
+  // Tool 5: getAvailableSlots
+  {
+    type: "function",
+    function: {
+      name: "getAvailableSlots",
+      description: "Find available time slots on a given date for scheduling a task. Returns up to 5 optimal slots based on energy matching.",
+      parameters: {
+        type: "object",
+        properties: {
+          date: {
+            type: "string",
+            description: "The date to check (format: YYYY-MM-DD)",
+          },
+          durationMinutes: {
+            type: "number",
+            description: "Duration of the task in minutes",
+            default: 60,
+            minimum: 5,
+            maximum: 480,
+          },
+          energyLevel: {
+            type: "string",
+            description: "Energy level required for the task",
+            enum: ["high", "medium", "low"],
+          },
+        },
+        required: ["date"],
+      },
+    },
+  },
+  // Tool 6: getGoalsProgress
+  {
+    type: "function",
+    function: {
+      name: "getGoalsProgress",
+      description: "Get progress information for user's goals. Returns on-track status and weekly progress. Limited to 10 goals.",
+      parameters: {
+        type: "object",
+        properties: {
+          goalId: {
+            type: "string",
+            description: "Specific goal ID to get progress for. If not provided, returns all goals (up to 10). (document ID)",
+          },
+          category: {
+            type: "string",
+            description: "Filter goals by category",
+            enum: ["learning", "health", "career", "personal", "creative"],
+          },
+        },
+        required: [],
+      },
+    },
+  },
+  // Tool 7: calculateTravelTime
+  {
+    type: "function",
+    function: {
+      name: "calculateTravelTime",
+      description: "Calculate travel time between two locations. Provide either location IDs or labels (e.g., 'Home', 'Office').",
+      parameters: {
+        type: "object",
+        properties: {
+          fromLocationId: {
+            type: "string",
+            description: "Starting location ID (use this OR fromLocationLabel) (document ID)",
+          },
+          fromLocationLabel: {
+            type: "string",
+            description: "Starting location label (e.g., 'Home', 'Office') - use this OR fromLocationId",
+          },
+          toLocationId: {
+            type: "string",
+            description: "Destination location ID (use this OR toLocationLabel) (document ID)",
+          },
+          toLocationLabel: {
+            type: "string",
+            description: "Destination location label (e.g., 'Home', 'Office') - use this OR toLocationId",
+          },
+        },
+        required: [],
+      },
+    },
+  },
+  // Tool 8: showSchedulePreview
+  {
+    type: "function",
+    function: {
+      name: "showSchedulePreview",
+      description: "Show a preview of proposed schedule blocks before creating them. Use this when the user wants to schedule multiple blocks at once (e.g., 'Schedule gym every morning this week'). Maximum 5 blocks per preview. Returns validation results and requires user confirmation before creating. [Requires user confirmation before executing]",
+      parameters: {
+        type: "object",
+        properties: {
+          blocks: {
+            type: "array",
+            description: "Array of proposed blocks to preview (1-5 blocks). Each block needs title, date, startTime, and endTime.",
+            items: {
+              type: "object",
+              properties: {
+                title: {
+                  type: "string",
+                  description: "Title of the block",
+                },
+                date: {
+                  type: "string",
+                  description: "Date (format: YYYY-MM-DD)",
+                },
+                startTime: {
+                  type: "string",
+                  description: "Start time (format: HH:mm, 24-hour)",
+                },
+                endTime: {
+                  type: "string",
+                  description: "End time (format: HH:mm, 24-hour)",
+                },
+                description: {
+                  type: "string",
+                  description: "Optional description for the block",
+                },
+                requiresTravel: {
+                  type: "boolean",
+                  description: "Whether this block requires travel",
+                },
+                energyLevel: {
+                  type: "string",
+                  description: "Energy level for the task",
+                  enum: ["high", "medium", "low"],
+                },
+              },
+              required: ["title", "date", "startTime", "endTime"],
+            },
+          },
+        },
+        required: ["blocks"],
+      },
+    },
+  },
+];
+
+// Generate the full configuration
+const config: ElevenLabsConfig = {
+  tools,
+  metadata: {
+    generatedAt: new Date().toISOString(),
+    toolCount: tools.length,
+    version: "1.0.0",
+  },
+};
+
+// Write to docs folder
+const outputPath = join(import.meta.dir, "..", "docs", "ELEVENLABS_DASHBOARD_CONFIG.json");
+writeFileSync(outputPath, JSON.stringify(config, null, 2));
+
+console.log(`Generated ElevenLabs configuration with ${tools.length} tools`);
+console.log(`Output: ${outputPath}`);
+console.log("\nTools included:");
+tools.forEach((tool, i) => {
+  const confirmationNote = tool.function.description.includes("[Requires user confirmation") ? " [REQUIRES CONFIRMATION]" : "";
+  console.log(`  ${i + 1}. ${tool.function.name}${confirmationNote}`);
+});

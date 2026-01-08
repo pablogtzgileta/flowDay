@@ -1,0 +1,136 @@
+# FlowDay Onboarding E2E Flow
+# Tests the complete sign-in and onboarding flow
+#
+# Prerequisites:
+# - Set TEST_EMAIL and TEST_PASSWORD environment variables
+# - App should be in logged-out state (clearState: true handles this)
+
+appId: com.flowday.app
+tags:
+  - critical
+  - onboarding
+  - smoke
+
+---
+
+# Start fresh - clear app state
+- launchApp:
+    clearState: true
+
+# Wait for app to fully load
+- waitForAnimationToEnd
+
+# ===== Sign In Flow =====
+
+# Verify we're on the sign-in screen
+- assertVisible: "FlowDay"
+- assertVisible: "Plan your day with AI"
+
+# Enter email
+- tapOn:
+    id: "signin-email-input"
+- inputText: "${TEST_EMAIL}"
+
+# Enter password
+- tapOn:
+    id: "signin-password-input"
+- inputText: "${TEST_PASSWORD}"
+
+# Submit sign in
+- tapOn:
+    id: "signin-submit-button"
+
+# Wait for authentication to complete
+- waitForAnimationToEnd:
+    timeout: 10000
+
+# ===== Onboarding Flow =====
+
+# If user is new, they'll go through onboarding
+# Welcome screen - Step 0
+- assertVisible:
+    text: "Welcome to FlowDay"
+    optional: true
+
+# If onboarding is visible, complete it
+- runFlow:
+    when:
+      visible: "Welcome to FlowDay"
+    commands:
+      # Tap Get Started
+      - tapOn:
+          id: "onboarding-get-started"
+      - waitForAnimationToEnd
+
+      # Wake time step - Step 1
+      - assertVisible: "When do you wake up?"
+      - tapOn:
+          id: "onboarding-continue"
+      - waitForAnimationToEnd
+
+      # Sleep time step - Step 2
+      - assertVisible: "When do you go to sleep?"
+      - tapOn:
+          id: "onboarding-continue"
+      - waitForAnimationToEnd
+
+      # Energy step - Step 3
+      - assertVisible:
+          text: "energy"
+          caseSensitive: false
+      - tapOn:
+          id: "onboarding-continue"
+      - waitForAnimationToEnd
+
+      # Notification step - Step 4
+      - assertVisible:
+          text: "notification"
+          caseSensitive: false
+      - tapOn:
+          id: "onboarding-continue"
+      - waitForAnimationToEnd
+
+      # Location step - Step 5 (optional, skip)
+      - assertVisible:
+          text: "location"
+          caseSensitive: false
+          optional: true
+      - tapOn:
+          text: "Finish"
+          optional: true
+      - waitForAnimationToEnd:
+          timeout: 5000
+
+# ===== Verify Landing =====
+
+# Should now be on the main timeline screen
+- assertVisible:
+    text: "Today"
+    timeout: 10000
+
+# Verify tab bar is visible
+- assertVisible: "Goals"
+- assertVisible: "Chat"
+
+# Take screenshot of successful onboarding
+- takeScreenshot: onboarding_complete
+
+# ===== Error Path: Invalid Credentials =====
+# Note: This test is separate and requires a fresh launch
+# Uncomment to test error handling
+
+# - launchApp:
+#     clearState: true
+# - waitForAnimationToEnd
+# - tapOn:
+#     id: "signin-email-input"
+# - inputText: "invalid@test.com"
+# - tapOn:
+#     id: "signin-password-input"
+# - inputText: "wrongpassword"
+# - tapOn:
+#     id: "signin-submit-button"
+# - waitForAnimationToEnd
+# - assertVisible:
+#     text: "failed"
+#     caseSensitive: false

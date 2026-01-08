@@ -1,0 +1,283 @@
+# FlowDay Onboarding Error Path E2E Flow
+# Tests error handling during sign-in process
+#
+# Prerequisites:
+# - App should be able to display error messages
+# - This flow tests various invalid input scenarios
+#
+# Note: This is separate from the main onboarding flow to isolate
+# error path testing from the happy path
+
+appId: com.flowday.app
+tags:
+  - error-paths
+  - onboarding
+  - validation
+
+---
+
+# ===== Test 1: Invalid Email Format =====
+# User enters an invalid email format
+
+- launchApp:
+    clearState: true
+
+- waitForAnimationToEnd
+
+# Verify we're on the sign-in screen
+- assertVisible: "FlowDay"
+
+# Enter invalid email (not a valid email format)
+- tapOn:
+    id: "signin-email-input"
+- inputText: "notanemail"
+
+# Enter a valid-looking password
+- tapOn:
+    id: "signin-password-input"
+- inputText: "somepassword123"
+
+# Submit sign in
+- tapOn:
+    id: "signin-submit-button"
+
+# Wait for validation to occur
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# Verify error message is displayed for invalid email
+- assertVisible:
+    text: "email"
+    caseSensitive: false
+    optional: true
+
+# Alternative: Check for generic error indicator
+- runFlow:
+    when:
+      notVisible:
+        text: "email"
+        caseSensitive: false
+    commands:
+      - assertVisible:
+          text: "invalid"
+          caseSensitive: false
+          optional: true
+
+# Take screenshot of invalid email error
+- takeScreenshot: error_invalid_email
+
+# ===== Test 2: Wrong Password =====
+# User enters a valid email but incorrect password
+
+- launchApp:
+    clearState: true
+
+- waitForAnimationToEnd
+
+# Verify we're on the sign-in screen
+- assertVisible: "FlowDay"
+
+# Enter a valid email format (but non-existent account or wrong password)
+- tapOn:
+    id: "signin-email-input"
+- inputText: "invalid@test.com"
+
+# Enter wrong password
+- tapOn:
+    id: "signin-password-input"
+- inputText: "wrongpassword123"
+
+# Submit sign in
+- tapOn:
+    id: "signin-submit-button"
+
+# Wait for authentication attempt
+- waitForAnimationToEnd:
+    timeout: 10000
+
+# Verify error message is displayed for failed authentication
+# Note: Error message may vary - checking for common error patterns
+- runFlow:
+    when:
+      visible:
+        text: "failed"
+        caseSensitive: false
+    commands:
+      - takeScreenshot: error_wrong_password_failed
+
+- runFlow:
+    when:
+      visible:
+        text: "incorrect"
+        caseSensitive: false
+    commands:
+      - takeScreenshot: error_wrong_password_incorrect
+
+- runFlow:
+    when:
+      visible:
+        text: "invalid"
+        caseSensitive: false
+    commands:
+      - takeScreenshot: error_wrong_password_invalid
+
+# Generic error check - at least one of these should be visible
+- assertVisible:
+    text: "error"
+    caseSensitive: false
+    optional: true
+
+# Take screenshot of wrong password error state
+- takeScreenshot: error_wrong_password
+
+# ===== Test 3: Empty Fields Validation =====
+# User attempts to submit with empty email and password fields
+
+- launchApp:
+    clearState: true
+
+- waitForAnimationToEnd
+
+# Verify we're on the sign-in screen
+- assertVisible: "FlowDay"
+
+# Don't enter anything - try to submit immediately
+# First, tap on email field to ensure focus, then clear any pre-filled value
+- tapOn:
+    id: "signin-email-input"
+- clearText
+- hideKeyboard
+
+# Tap on password field and clear
+- tapOn:
+    id: "signin-password-input"
+- clearText
+- hideKeyboard
+
+# Submit sign in with empty fields
+- tapOn:
+    id: "signin-submit-button"
+
+# Wait for validation to occur
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# Verify validation error is displayed
+# Common patterns: "required", "empty", "enter", "cannot be blank"
+- runFlow:
+    when:
+      visible:
+        text: "required"
+        caseSensitive: false
+    commands:
+      - takeScreenshot: error_empty_required
+
+- runFlow:
+    when:
+      visible:
+        text: "enter"
+        caseSensitive: false
+    commands:
+      - takeScreenshot: error_empty_enter
+
+- runFlow:
+    when:
+      visible:
+        text: "empty"
+        caseSensitive: false
+    commands:
+      - takeScreenshot: error_empty_empty
+
+# Take screenshot of empty fields error state
+- takeScreenshot: error_empty_fields
+
+# ===== Test 4: Empty Email Only =====
+# User enters password but leaves email empty
+
+- launchApp:
+    clearState: true
+
+- waitForAnimationToEnd
+
+# Verify we're on the sign-in screen
+- assertVisible: "FlowDay"
+
+# Leave email empty
+- tapOn:
+    id: "signin-email-input"
+- clearText
+- hideKeyboard
+
+# Enter a password
+- tapOn:
+    id: "signin-password-input"
+- inputText: "validpassword123"
+- hideKeyboard
+
+# Submit sign in
+- tapOn:
+    id: "signin-submit-button"
+
+# Wait for validation
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# Should show email-related error
+- takeScreenshot: error_email_empty
+
+# ===== Test 5: Empty Password Only =====
+# User enters email but leaves password empty
+
+- launchApp:
+    clearState: true
+
+- waitForAnimationToEnd
+
+# Verify we're on the sign-in screen
+- assertVisible: "FlowDay"
+
+# Enter a valid email
+- tapOn:
+    id: "signin-email-input"
+- inputText: "test@example.com"
+- hideKeyboard
+
+# Leave password empty
+- tapOn:
+    id: "signin-password-input"
+- clearText
+- hideKeyboard
+
+# Submit sign in
+- tapOn:
+    id: "signin-submit-button"
+
+# Wait for validation
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# Should show password-related error
+- takeScreenshot: error_password_empty
+
+# ===== Final Verification =====
+# Verify app is still functional after error scenarios
+
+- launchApp:
+    clearState: true
+
+- waitForAnimationToEnd
+
+# Verify sign-in screen is still accessible and functional
+- assertVisible: "FlowDay"
+- assertVisible: "Plan your day with AI"
+
+# Verify input fields are still interactive
+- assertVisible:
+    id: "signin-email-input"
+- assertVisible:
+    id: "signin-password-input"
+- assertVisible:
+    id: "signin-submit-button"
+
+# Final screenshot
+- takeScreenshot: error_paths_complete

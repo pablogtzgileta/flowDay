@@ -1,0 +1,153 @@
+# FlowDay Timeline E2E Flow
+# Tests timeline viewing, tab switching, and block interactions
+#
+# Prerequisites:
+# - User must be logged in (run onboarding.yaml first or use existing session)
+# - Set TEST_EMAIL and TEST_PASSWORD if starting fresh
+
+appId: com.flowday.app
+tags:
+  - critical
+  - timeline
+  - smoke
+
+---
+
+# Launch app (user should already be authenticated)
+- launchApp:
+    clearState: false
+
+# Wait for app to load
+- waitForAnimationToEnd
+
+# ===== Sign In If Needed =====
+
+# Check if we need to sign in first
+- runFlow:
+    when:
+      visible:
+        id: "signin-email-input"
+    commands:
+      - tapOn:
+          id: "signin-email-input"
+      - inputText: "${TEST_EMAIL}"
+      - tapOn:
+          id: "signin-password-input"
+      - inputText: "${TEST_PASSWORD}"
+      - tapOn:
+          id: "signin-submit-button"
+      - waitForAnimationToEnd:
+          timeout: 10000
+      # Skip through onboarding if present
+      - runFlow:
+          when:
+            visible: "Welcome to FlowDay"
+          commands:
+            - tapOn:
+                id: "onboarding-get-started"
+            - waitForAnimationToEnd
+            - repeat:
+                times: 4
+                commands:
+                  - tapOn:
+                      id: "onboarding-continue"
+                  - waitForAnimationToEnd
+            - tapOn:
+                text: "Finish"
+                optional: true
+            - waitForAnimationToEnd
+
+# ===== Timeline View Tests =====
+
+# Verify we're on the timeline (Today tab)
+- assertVisible:
+    id: "timeline-today-tab"
+- assertVisible:
+    id: "timeline-tomorrow-tab"
+
+# Take screenshot of Today view
+- takeScreenshot: timeline_today
+
+# ===== Tab Switching =====
+
+# Switch to Tomorrow tab
+- tapOn:
+    id: "timeline-tomorrow-tab"
+- waitForAnimationToEnd
+
+# Verify Tomorrow is now active (tab should show different styling)
+- takeScreenshot: timeline_tomorrow
+
+# Switch back to Today tab
+- tapOn:
+    id: "timeline-today-tab"
+- waitForAnimationToEnd
+
+# ===== Empty State Test =====
+
+# Check for empty state or timeline list
+- runFlow:
+    when:
+      visible: "No blocks for today"
+    commands:
+      - takeScreenshot: timeline_empty_state
+      # Verify the CTA button is visible
+      - assertVisible: "Plan with AI"
+
+# ===== Block Interaction Tests =====
+
+# If timeline has blocks, test interactions
+- runFlow:
+    when:
+      visible:
+        id: "timeline-list"
+    commands:
+      # Verify the list is rendered
+      - takeScreenshot: timeline_with_blocks
+
+      # Test swipe-to-complete (swipe left on a block to reveal complete action)
+      # Note: Maestro swipe gestures may need adjustment based on device
+      - swipe:
+          direction: LEFT
+          duration: 500
+
+      # If complete action is visible, tap it
+      - runFlow:
+          when:
+            visible:
+              id: "timeblock-complete-action"
+          commands:
+            - tapOn:
+                id: "timeblock-complete-action"
+            - waitForAnimationToEnd
+            - takeScreenshot: timeline_block_completed
+
+      # Test swipe-to-skip (swipe right on a block to reveal skip action)
+      - swipe:
+          direction: RIGHT
+          duration: 500
+
+      # If skip action is visible, tap it
+      - runFlow:
+          when:
+            visible:
+              id: "timeblock-skip-action"
+          commands:
+            - tapOn:
+                id: "timeblock-skip-action"
+            - waitForAnimationToEnd
+            - takeScreenshot: timeline_block_skipped
+
+# ===== Navigation Test =====
+
+# Navigate to Goals tab and back
+- tapOn: "Goals tab - manage your goals"
+- waitForAnimationToEnd
+- assertVisible: "Goals"
+
+# Return to Timeline
+- tapOn: "Today tab - view your timeline"
+- waitForAnimationToEnd
+
+# Final screenshot
+- takeScreenshot: timeline_flow_complete

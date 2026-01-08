@@ -1,0 +1,29 @@
+{
+  "name": "@flow-day/convex",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./*": "./*"
+  },
+  "scripts": {
+    "dev": "bunx convex dev",
+    "test": "bunx vitest --run",
+    "test:watch": "bunx vitest",
+    "test:coverage": "bunx vitest --coverage"
+  },
+  "dependencies": {
+    "@better-auth/expo": "1.4.9",
+    "@convex-dev/better-auth": "^0.10.9",
+    "better-auth": "1.4.9",
+    "convex": "^1.30.0",
+    "date-fns": "^4.1.0"
+  },
+  "devDependencies": {
+    "@edge-runtime/vm": "^5.0.0",
+    "convex-test": "^0.0.41",
+    "fast-check": "^4.5.3",
+    "vitest": "^4.0.16"
+  }
+}

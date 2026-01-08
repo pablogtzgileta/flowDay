@@ -1,0 +1,165 @@
+# FlowDay Store Screenshot Capture Flow
+# Captures screenshots for App Store and Play Store submissions
+#
+# Prerequisites:
+# - Set TEST_EMAIL and TEST_PASSWORD environment variables
+# - App should be in logged-out state for fresh demo data
+# - Run on appropriate simulator/emulator:
+#   - iOS: iPhone 15 Pro Max (1290x2796) for 6.9" screenshots
+#   - Android: Pixel 7 (1080x2400) for Play Store
+#
+# Usage:
+#   maestro test .maestro/store-screenshots/capture.yaml
+#
+# Output:
+#   Screenshots are saved to ~/.maestro/screenshots/ by default
+#   Copy to appropriate store asset directories after capture
+
+appId: com.flowday.app
+tags:
+  - screenshots
+  - store
+
+---
+
+# ===== SETUP: Sign In and Prepare Demo State =====
+
+# Start fresh for clean demo data
+- launchApp:
+    clearState: true
+
+- waitForAnimationToEnd
+
+# Sign in with demo account
+- tapOn:
+    id: "signin-email-input"
+- inputText: "${TEST_EMAIL}"
+
+- tapOn:
+    id: "signin-password-input"
+- inputText: "${TEST_PASSWORD}"
+
+- tapOn:
+    id: "signin-submit-button"
+
+# Wait for authentication
+- waitForAnimationToEnd:
+    timeout: 15000
+
+# Skip onboarding if present (for returning users with demo data)
+- runFlow:
+    when:
+      visible: "Welcome to FlowDay"
+    commands:
+      - tapOn:
+          id: "onboarding-get-started"
+      - waitForAnimationToEnd
+
+      # Quick skip through onboarding
+      - tapOn:
+          id: "onboarding-continue"
+      - waitForAnimationToEnd
+
+      - tapOn:
+          id: "onboarding-continue"
+      - waitForAnimationToEnd
+
+      - tapOn:
+          id: "onboarding-continue"
+      - waitForAnimationToEnd
+
+      - tapOn:
+          id: "onboarding-continue"
+      - waitForAnimationToEnd
+
+      - tapOn:
+          text: "Finish"
+          optional: true
+      - waitForAnimationToEnd:
+          timeout: 5000
+
+# ===== SCREENSHOT 1: Timeline View =====
+
+# Ensure we're on Today tab
+- assertVisible: "Today"
+
+# Wait for timeline data to load
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# Capture timeline with scheduled blocks
+- takeScreenshot: store/01_timeline_today
+
+# ===== SCREENSHOT 2: Tomorrow View (Optional) =====
+
+# Switch to Tomorrow tab to show planning ahead
+- tapOn:
+    id: "timeline-tomorrow-tab"
+    optional: true
+
+- waitForAnimationToEnd
+
+- takeScreenshot: store/02_timeline_tomorrow
+
+# ===== SCREENSHOT 3: Goals Overview =====
+
+# Navigate to Goals tab
+- tapOn: "Goals"
+
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# Capture goals list with progress indicators
+- takeScreenshot: store/03_goals_list
+
+# ===== SCREENSHOT 4: Goal Detail (Optional) =====
+
+# Tap on first goal if visible to show detail view
+- runFlow:
+    when:
+      visible:
+        id: "goals-list"
+    commands:
+      - swipe:
+          start: "50%,40%"
+          end: "50%,45%"
+          duration: 200
+      - waitForAnimationToEnd
+      # Note: Add goal tap when detail screen is implemented
+      # - takeScreenshot: store/04_goal_detail
+
+# ===== SCREENSHOT 5: AI Agent Chat =====
+
+# Navigate to Agent/Chat tab
+- tapOn: "Chat"
+
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# Capture agent interface
+- takeScreenshot: store/05_agent_chat
+
+# ===== SCREENSHOT 6: Voice Interaction (If visible) =====
+
+# The voice button should be visible on the Agent screen
+- assertVisible:
+    text: "Ask FlowDay"
+    optional: true
+
+- takeScreenshot: store/06_voice_interface
+
+# ===== FINAL: Return to Timeline =====
+
+# Navigate back to Timeline for clean state
+- tapOn: "Today"
+
+- waitForAnimationToEnd
+
+# Final confirmation screenshot
+- takeScreenshot: store/07_final_timeline
+
+# ===== END =====
+# Screenshots are saved to ~/.maestro/screenshots/store/
+# Copy files to:
+# - apps/mobile/assets/store/ios/ for App Store
+# - apps/mobile/assets/store/android/ for Play Store

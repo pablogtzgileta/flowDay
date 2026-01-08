@@ -1,0 +1,24 @@
+# Maestro Configuration for FlowDay
+# See: https://maestro.mobile.dev/reference/yaml-config
+
+appId: com.flowday.app
+
+tags:
+  - smoke
+  - critical
+
+# Global flow configurations
+onFlowStart:
+  - launchApp:
+      clearState: false
+
+onFlowComplete:
+  - takeScreenshot
+
+# Environment variables for test credentials
+env:
+  TEST_EMAIL: ${TEST_EMAIL}
+  TEST_PASSWORD: ${TEST_PASSWORD}
+
+# Default test settings
+defaultTimeout: 30000
