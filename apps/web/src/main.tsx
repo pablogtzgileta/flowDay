@@ -1,24 +1,31 @@
 import { StrictMode } from "react"
 import ReactDOM from "react-dom/client"
-import { RouterProvider, createRouter } from "@tanstack/react-router"
+import { RouterProvider } from "@tanstack/react-router"
+import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react"
+import { QueryClientProvider } from "@tanstack/react-query"
 
 import "./styles.css"
 
-// Import the generated route tree
-import { routeTree } from "./routeTree.gen"
+import { router } from "./router"
+import { useSession, authClient } from "@/lib/auth-client"
+import { convex, queryClient } from "@/lib/convex"
+import { ErrorBoundary } from "@/components/error-boundary"
+import { FullPageLoading } from "@/components/ui/loading-spinner"
 
-// Create a new router instance
-const router = createRouter({
-  routeTree,
-  defaultPreload: "intent",
-  scrollRestoration: true,
-})
+function AppRouter() {
+  const { data: session, isPending } = useSession()
 
-// Register the router instance for type safety
-declare module "@tanstack/react-router" {
-  interface Register {
-    router: typeof router
+  if (isPending) {
+    return <FullPageLoading message="Loading..." />
   }
+
+  const auth = {
+    isAuthenticated: Boolean(session?.user),
+    user: session?.user ?? null,
+    isPending,
+  }
+
+  return <RouterProvider router={router} context={{ auth }} />
 }
 
 // Render the app
@@ -27,7 +34,13 @@ if (rootElement && !rootElement.innerHTML) {
   const root = ReactDOM.createRoot(rootElement)
   root.render(
     <StrictMode>
-      <RouterProvider router={router} />
+      <ErrorBoundary>
+        <ConvexBetterAuthProvider client={convex} authClient={authClient}>
+          <QueryClientProvider client={queryClient}>
+            <AppRouter />
+          </QueryClientProvider>
+        </ConvexBetterAuthProvider>
+      </ErrorBoundary>
     </StrictMode>
   )
 }

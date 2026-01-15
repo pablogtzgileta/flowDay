@@ -17,8 +17,9 @@
     "@better-auth/expo": "1.4.9",
     "@convex-dev/better-auth": "^0.10.9",
     "better-auth": "1.4.9",
-    "convex": "^1.30.0",
-    "date-fns": "^4.1.0"
+    "convex": "^1.31.3",
+    "date-fns": "^4.1.0",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
     "@edge-runtime/vm": "^5.0.0",

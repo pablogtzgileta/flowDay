@@ -109,3 +109,37 @@ bun --hot ./index.ts
 ```
 
 For more information, read the Bun API docs in `node_modules/bun-types/docs/**.md`.
+
+## Test Credentials
+
+For testing authentication flows:
+
+```
+Email: test@flowday.dev
+Password: TestPassword123!
+Name: Test User
+```
+
+## Version Notes
+
+### React Version Difference (Intentional)
+- **Web app**: Uses React `^19.2.x` (latest stable)
+- **Mobile app**: Uses React `19.1.0` (pinned)
+
+This is **intentional** - React Native 0.81 requires React 19.1.x for compatibility.
+The react-native-renderer must match the React version. Do NOT update mobile to 19.2.x
+until React Native officially supports it.
+
+## Convex Configuration
+
+Deployment: `fearless-iguana-970`
+- Cloud URL: `https://fearless-iguana-970.convex.cloud`
+- Site URL: `https://fearless-iguana-970.convex.site`
+
+Required environment variables in Convex Dashboard:
+- `SITE_URL` - ✅ Configured
+- `ENVIRONMENT` - ✅ Configured (development)
+- `BETTER_AUTH_SECRET` - ✅ Configured
+- `ELEVENLABS_API_KEY` - ✅ Configured
+- `ELEVENLABS_AGENT_ID` - ✅ Configured
+- `GOOGLE_ROUTES_API_KEY` - ❌ Pending (optional, for maps/travel features)

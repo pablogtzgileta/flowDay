@@ -243,6 +243,7 @@ export default defineSchema({
 
   // Travel time cache to reduce API calls (Phase 2)
   travelTimeCache: defineTable({
+    userId: v.id("users"), // Added for efficient per-user queries
     fromLocationId: v.id("locations"),
     toLocationId: v.id("locations"),
     travelTimeMinutes: v.number(),
@@ -250,5 +251,7 @@ export default defineSchema({
     trafficCondition: v.optional(
       v.union(v.literal("light"), v.literal("moderate"), v.literal("heavy"))
     ),
-  }).index("by_locations", ["fromLocationId", "toLocationId"]),
+  })
+    .index("by_locations", ["fromLocationId", "toLocationId"])
+    .index("by_user", ["userId"]), // New index for efficient per-user queries
 });

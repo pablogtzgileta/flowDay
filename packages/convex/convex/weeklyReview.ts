@@ -674,6 +674,7 @@ export const getAvailableWeeks = query({
 
 /**
  * Apply a suggestion (returns mutation info for frontend).
+ * Requires auth for consistency even though it doesn't access user data directly.
  */
 export const applySuggestion = query({
   args: {
@@ -692,6 +693,9 @@ export const applySuggestion = query({
     newDuration: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    // Verify user is authenticated for consistency with other queries
+    await requireAuth(ctx);
+
     return {
       mutationType: args.suggestionType,
       args,

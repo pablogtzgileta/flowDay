@@ -136,8 +136,9 @@ export const calculateTravelTime = internalAction({
       staticDurationSeconds
     );
 
-    // Cache the result
+    // Cache the result (use userId from location for efficient per-user queries)
     await ctx.runMutation(internal.travelTimeCache.upsert, {
+      userId: fromLocation.userId,
       fromLocationId,
       toLocationId,
       travelTimeMinutes,

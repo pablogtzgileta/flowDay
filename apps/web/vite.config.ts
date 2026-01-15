@@ -7,7 +7,7 @@ import tsconfigPaths from 'vite-tsconfig-paths'
 // https://vitejs.dev/config/
 export default defineConfig({
   server: {
-    port: 3000,
+    port: 3001,
   },
   plugins: [
     tsconfigPaths(),
@@ -22,5 +22,10 @@ export default defineConfig({
   ],
   ssr: {
     noExternal: ['@convex-dev/better-auth'], // Required for SSR
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    include: ['src/**/*.test.{ts,tsx}'],
   },
 })

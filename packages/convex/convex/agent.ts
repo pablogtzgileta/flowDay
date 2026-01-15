@@ -10,6 +10,16 @@ import {
   getEnergyLevelForHour,
 } from "./scheduling";
 import { timeToMinutes } from "./utils/time";
+import { z } from "zod";
+
+// ElevenLabs API response schemas for runtime validation
+const ElevenLabsSignedUrlResponse = z.object({
+  signed_url: z.string().url(),
+});
+
+const ElevenLabsTokenResponse = z.object({
+  token: z.string().min(1),
+});
 
 // Rate limit: max 10 token requests per minute
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
@@ -68,7 +78,15 @@ export const getSignedUrl = action({
     }
 
     const data = await response.json();
-    return data.signed_url;
+
+    // Validate response schema
+    const parsed = ElevenLabsSignedUrlResponse.safeParse(data);
+    if (!parsed.success) {
+      console.error("Invalid ElevenLabs response:", parsed.error.message);
+      throw new Error("Invalid response from ElevenLabs API");
+    }
+
+    return parsed.data.signed_url;
   },
 });
 
@@ -125,7 +143,15 @@ export const getConversationToken = action({
     }
 
     const data = await response.json();
-    return data.token;
+
+    // Validate response schema
+    const parsed = ElevenLabsTokenResponse.safeParse(data);
+    if (!parsed.success) {
+      console.error("Invalid ElevenLabs response:", parsed.error.message);
+      throw new Error("Invalid response from ElevenLabs API");
+    }
+
+    return parsed.data.token;
   },
 });
 
@@ -196,31 +222,16 @@ export const getAgentContext = query({
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect();
 
-    // Get cached travel times for this user's locations
-    // Only query if user has locations (avoid unnecessary query)
-    const locationIds = new Set(locations.map((l) => l._id));
-    const userTravelTimes: Array<{
-      fromLocationId: typeof locations[0]["_id"];
-      toLocationId: typeof locations[0]["_id"];
-      travelTimeMinutes: number;
-      trafficCondition?: "light" | "moderate" | "heavy";
-    }> = [];
-
-    if (locations.length >= 2) {
-      // Fetch all travel times in one query and filter in memory
-      // NOTE: travelTimeCache uses 'by_locations' index (not by_user)
-      // This batch approach replaces N+1 queries (one per location) with a single query
-      const allTravelTimes = await ctx.db
-        .query("travelTimeCache")
-        .collect();
-
-      // Filter to only include travel times for user's locations
-      for (const tt of allTravelTimes) {
-        if (locationIds.has(tt.fromLocationId) && locationIds.has(tt.toLocationId)) {
-          userTravelTimes.push(tt);
-        }
-      }
-    }
+    // Get cached travel times for this user (efficient indexed query using by_user index)
+    const now = Date.now();
+    const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+    const userTravelTimes = locations.length >= 2
+      ? (await ctx.db
+          .query("travelTimeCache")
+          .withIndex("by_user", (q) => q.eq("userId", user._id))
+          .collect()
+        ).filter((entry) => now - entry.calculatedAt <= CACHE_TTL_MS)
+      : [];
 
     // Format schedules for the agent
     const formatSchedule = (blocks: typeof todayBlocks): string => {
@@ -496,6 +507,78 @@ export const getVoiceUsage = query({
     return {
       ...usage,
       remainingMinutes: Math.max(0, 15 - usage.monthlyMinutesUsed),
+    };
+  },
+});
+
+// Simple text chat action for web interface
+export const chat = action({
+  args: {
+    message: v.string(),
+  },
+  handler: async (ctx, { message }): Promise<{ text: string }> => {
+    // Get authenticated user
+    const user = await ctx.runQuery(api.agent.getCurrentUser);
+    if (!user) {
+      throw new Error("Not authenticated");
+    }
+
+    // Get context for personalized responses
+    const context = await ctx.runQuery(api.agent.getAgentContext, {
+      clientDate: format(new Date(), "yyyy-MM-dd"),
+    });
+
+    const lowerMessage = message.toLowerCase();
+
+    // Simple intent detection and context-aware responses
+    if (lowerMessage.includes("schedule") || lowerMessage.includes("today")) {
+      if (context.today_schedule === "No scheduled blocks") {
+        return {
+          text: `Hi ${context.user_name}! You don't have any blocks scheduled for today. Would you like me to help you plan your day based on your goals?`,
+        };
+      }
+      return {
+        text: `Here's your schedule for today:\n\n${context.today_schedule}\n\nYour current energy level is ${context.current_energy}. ${context.energy_tips}`,
+      };
+    }
+
+    if (lowerMessage.includes("tomorrow")) {
+      if (context.tomorrow_schedule === "No scheduled blocks") {
+        return {
+          text: `You don't have anything scheduled for tomorrow yet. Based on your goals, would you like suggestions for what to work on?`,
+        };
+      }
+      return {
+        text: `Here's your schedule for tomorrow:\n\n${context.tomorrow_schedule}`,
+      };
+    }
+
+    if (lowerMessage.includes("goal") || lowerMessage.includes("progress")) {
+      if (context.goals_summary === "No active goals") {
+        return {
+          text: `You don't have any active goals yet. Would you like to create one? Goals help me better plan your schedule and ensure you're making progress on what matters most to you.`,
+        };
+      }
+      return {
+        text: `Here's your goals summary:\n\n${context.goals_summary}\n\n${context.energy_tips}`,
+      };
+    }
+
+    if (lowerMessage.includes("energy") || lowerMessage.includes("tired") || lowerMessage.includes("lazy")) {
+      return {
+        text: `Your current energy level is ${context.current_energy}.\n\n${context.energy_schedule}\n\nLazy mode is currently ${context.lazy_mode}. ${context.energy_tips}`,
+      };
+    }
+
+    if (lowerMessage.includes("hello") || lowerMessage.includes("hi") || lowerMessage.includes("hey")) {
+      return {
+        text: `Hi ${context.user_name}! I'm your Flow Day assistant. I can help you with:\n\n• Checking your schedule (today/tomorrow)\n• Reviewing your goals and progress\n• Understanding your energy levels\n\nWhat would you like to know?`,
+      };
+    }
+
+    // Default response with context
+    return {
+      text: `I understand you're asking about "${message}". I can help you with:\n\n• Your schedule for today or tomorrow\n• Your goals and progress tracking\n• Energy levels and productivity tips\n\nYour current energy is ${context.current_energy}, and ${context.lazy_mode === "disabled" ? "lazy mode is off" : `lazy mode is ${context.lazy_mode}`}. What would you like to focus on?`,
     };
   },
 });

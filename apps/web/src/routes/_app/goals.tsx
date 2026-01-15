@@ -1,10 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, Link } from "@tanstack/react-router"
 import { useQuery, useMutation } from "convex/react"
 import { useState } from "react"
 import { Plus, Target, Clock, Zap, Calendar } from "lucide-react"
+import { toast } from "sonner"
 
 import { api, type Doc } from "@flow-day/convex"
 import { GOAL_TEMPLATES, type GoalTemplate } from "@flow-day/shared"
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -22,10 +24,16 @@ const TIME_PREFERENCES = ["morning", "afternoon", "evening", "any"] as const
 const ENERGY_LEVELS = ["high", "medium", "low"] as const
 
 function GoalsPage() {
-  const goals = useQuery(api.goals.list)
+  const goals = useQuery(api.goals.getGoals)
   const createGoal = useMutation(api.goals.create)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<GoalTemplate | null>(null)
+
+  // Keyboard shortcut: Cmd/Ctrl + N to open new goal dialog
+  useKeyboardShortcuts({
+    onNewGoal: () => setIsDialogOpen(true),
+    onEscape: () => setIsDialogOpen(false),
+  })
 
   // Form state
   const [title, setTitle] = useState("")
@@ -47,26 +55,32 @@ function GoalsPage() {
   const handleCreateGoal = async () => {
     if (!title.trim()) return
 
-    await createGoal({
-      title: title.trim(),
-      description: description.trim() || undefined,
-      weeklyTargetMinutes: weeklyHours * 60,
-      preferredSessionLength: { min: 30, max: 45 },
-      preferredTime,
-      energyLevel,
-      priority: 5,
-      category,
-    })
+    try {
+      await createGoal({
+        title: title.trim(),
+        description: description.trim() || undefined,
+        weeklyTargetMinutes: weeklyHours * 60,
+        preferredSessionLength: { min: 30, max: 45 },
+        preferredTime,
+        energyLevel,
+        priority: 5,
+        category,
+      })
 
-    // Reset form
-    setTitle("")
-    setDescription("")
-    setWeeklyHours(3)
-    setCategory("personal")
-    setPreferredTime("any")
-    setEnergyLevel("medium")
-    setSelectedTemplate(null)
-    setIsDialogOpen(false)
+      toast.success("Goal created successfully!")
+
+      // Reset form
+      setTitle("")
+      setDescription("")
+      setWeeklyHours(3)
+      setCategory("personal")
+      setPreferredTime("any")
+      setEnergyLevel("medium")
+      setSelectedTemplate(null)
+      setIsDialogOpen(false)
+    } catch {
+      toast.error("Failed to create goal. Please try again.")
+    }
   }
 
   return (
@@ -227,36 +241,43 @@ function GoalsPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {goals.map((goal: Goal) => (
-            <Card key={goal._id}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="h-5 w-5" />
-                  {goal.title}
-                </CardTitle>
-                {goal.description && (
-                  <CardDescription>{goal.description}</CardDescription>
-                )}
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Clock className="h-4 w-4" />
-                  <span>{Math.round(goal.weeklyTargetMinutes / 60)}h / week</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Calendar className="h-4 w-4" />
-                  <span className="capitalize">{goal.preferredTime === "any" ? "Any time" : goal.preferredTime}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Zap className="h-4 w-4" />
-                  <span className="capitalize">{goal.energyLevel} energy</span>
-                </div>
-                <div className="pt-2">
-                  <span className="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium capitalize">
-                    {goal.category}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
+            <Link key={goal._id} to="/goals/$goalId" params={{ goalId: goal._id }}>
+              <Card className="cursor-pointer transition-colors hover:bg-accent/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Target className="h-5 w-5" />
+                    {goal.title}
+                    {!goal.isActive && (
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                        Archived
+                      </span>
+                    )}
+                  </CardTitle>
+                  {goal.description && (
+                    <CardDescription>{goal.description}</CardDescription>
+                  )}
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Clock className="h-4 w-4" />
+                    <span>{Math.round(goal.weeklyTargetMinutes / 60)}h / week</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Calendar className="h-4 w-4" />
+                    <span className="capitalize">{goal.preferredTime === "any" ? "Any time" : goal.preferredTime}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Zap className="h-4 w-4" />
+                    <span className="capitalize">{goal.energyLevel} energy</span>
+                  </div>
+                  <div className="pt-2">
+                    <span className="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium capitalize">
+                      {goal.category}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
       )}

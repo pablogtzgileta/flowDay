@@ -11,13 +11,20 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppTimelineRouteImport } from './routes/_app/timeline'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppSchedulerRouteImport } from './routes/_app/scheduler'
+import { Route as AppReviewRouteImport } from './routes/_app/review'
 import { Route as AppGoalsRouteImport } from './routes/_app/goals'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppAgentRouteImport } from './routes/_app/agent'
+import { Route as AppSettingsEnergyRouteImport } from './routes/_app/settings.energy'
+import { Route as AppGoalsGoalIdRouteImport } from './routes/_app/goals.$goalId'
 
 const SignUpRoute = SignUpRouteImport.update({
   id: '/sign-up',
@@ -29,6 +36,21 @@ const SignInRoute = SignInRouteImport.update({
   path: '/sign-in',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
@@ -38,6 +60,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppTimelineRoute = AppTimelineRouteImport.update({
+  id: '/timeline',
+  path: '/timeline',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -46,6 +73,11 @@ const AppSettingsRoute = AppSettingsRouteImport.update({
 const AppSchedulerRoute = AppSchedulerRouteImport.update({
   id: '/scheduler',
   path: '/scheduler',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppReviewRoute = AppReviewRouteImport.update({
+  id: '/review',
+  path: '/review',
   getParentRoute: () => AppRoute,
 } as any)
 const AppGoalsRoute = AppGoalsRouteImport.update({
@@ -63,76 +95,131 @@ const AppAgentRoute = AppAgentRouteImport.update({
   path: '/agent',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSettingsEnergyRoute = AppSettingsEnergyRouteImport.update({
+  id: '/energy',
+  path: '/energy',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppGoalsGoalIdRoute = AppGoalsGoalIdRouteImport.update({
+  id: '/$goalId',
+  path: '/$goalId',
+  getParentRoute: () => AppGoalsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/onboarding': typeof OnboardingRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/agent': typeof AppAgentRoute
   '/dashboard': typeof AppDashboardRoute
-  '/goals': typeof AppGoalsRoute
+  '/goals': typeof AppGoalsRouteWithChildren
+  '/review': typeof AppReviewRoute
   '/scheduler': typeof AppSchedulerRoute
-  '/settings': typeof AppSettingsRoute
+  '/settings': typeof AppSettingsRouteWithChildren
+  '/timeline': typeof AppTimelineRoute
+  '/goals/$goalId': typeof AppGoalsGoalIdRoute
+  '/settings/energy': typeof AppSettingsEnergyRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/onboarding': typeof OnboardingRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/agent': typeof AppAgentRoute
   '/dashboard': typeof AppDashboardRoute
-  '/goals': typeof AppGoalsRoute
+  '/goals': typeof AppGoalsRouteWithChildren
+  '/review': typeof AppReviewRoute
   '/scheduler': typeof AppSchedulerRoute
-  '/settings': typeof AppSettingsRoute
+  '/settings': typeof AppSettingsRouteWithChildren
+  '/timeline': typeof AppTimelineRoute
+  '/goals/$goalId': typeof AppGoalsGoalIdRoute
+  '/settings/energy': typeof AppSettingsEnergyRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/onboarding': typeof OnboardingRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/_app/agent': typeof AppAgentRoute
   '/_app/dashboard': typeof AppDashboardRoute
-  '/_app/goals': typeof AppGoalsRoute
+  '/_app/goals': typeof AppGoalsRouteWithChildren
+  '/_app/review': typeof AppReviewRoute
   '/_app/scheduler': typeof AppSchedulerRoute
-  '/_app/settings': typeof AppSettingsRoute
+  '/_app/settings': typeof AppSettingsRouteWithChildren
+  '/_app/timeline': typeof AppTimelineRoute
+  '/_app/goals/$goalId': typeof AppGoalsGoalIdRoute
+  '/_app/settings/energy': typeof AppSettingsEnergyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/forgot-password'
+    | '/onboarding'
+    | '/reset-password'
     | '/sign-in'
     | '/sign-up'
     | '/agent'
     | '/dashboard'
     | '/goals'
+    | '/review'
     | '/scheduler'
     | '/settings'
+    | '/timeline'
+    | '/goals/$goalId'
+    | '/settings/energy'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/forgot-password'
+    | '/onboarding'
+    | '/reset-password'
     | '/sign-in'
     | '/sign-up'
     | '/agent'
     | '/dashboard'
     | '/goals'
+    | '/review'
     | '/scheduler'
     | '/settings'
+    | '/timeline'
+    | '/goals/$goalId'
+    | '/settings/energy'
   id:
     | '__root__'
     | '/'
     | '/_app'
+    | '/forgot-password'
+    | '/onboarding'
+    | '/reset-password'
     | '/sign-in'
     | '/sign-up'
     | '/_app/agent'
     | '/_app/dashboard'
     | '/_app/goals'
+    | '/_app/review'
     | '/_app/scheduler'
     | '/_app/settings'
+    | '/_app/timeline'
+    | '/_app/goals/$goalId'
+    | '/_app/settings/energy'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
+  OnboardingRoute: typeof OnboardingRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
 }
@@ -153,6 +240,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignInRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app': {
       id: '/_app'
       path: ''
@@ -167,6 +275,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/timeline': {
+      id: '/_app/timeline'
+      path: '/timeline'
+      fullPath: '/timeline'
+      preLoaderRoute: typeof AppTimelineRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/settings': {
       id: '/_app/settings'
       path: '/settings'
@@ -179,6 +294,13 @@ declare module '@tanstack/react-router' {
       path: '/scheduler'
       fullPath: '/scheduler'
       preLoaderRoute: typeof AppSchedulerRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/review': {
+      id: '/_app/review'
+      path: '/review'
+      fullPath: '/review'
+      preLoaderRoute: typeof AppReviewRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/goals': {
@@ -202,23 +324,65 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAgentRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/settings/energy': {
+      id: '/_app/settings/energy'
+      path: '/energy'
+      fullPath: '/settings/energy'
+      preLoaderRoute: typeof AppSettingsEnergyRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/_app/goals/$goalId': {
+      id: '/_app/goals/$goalId'
+      path: '/$goalId'
+      fullPath: '/goals/$goalId'
+      preLoaderRoute: typeof AppGoalsGoalIdRouteImport
+      parentRoute: typeof AppGoalsRoute
+    }
   }
 }
+
+interface AppGoalsRouteChildren {
+  AppGoalsGoalIdRoute: typeof AppGoalsGoalIdRoute
+}
+
+const AppGoalsRouteChildren: AppGoalsRouteChildren = {
+  AppGoalsGoalIdRoute: AppGoalsGoalIdRoute,
+}
+
+const AppGoalsRouteWithChildren = AppGoalsRoute._addFileChildren(
+  AppGoalsRouteChildren,
+)
+
+interface AppSettingsRouteChildren {
+  AppSettingsEnergyRoute: typeof AppSettingsEnergyRoute
+}
+
+const AppSettingsRouteChildren: AppSettingsRouteChildren = {
+  AppSettingsEnergyRoute: AppSettingsEnergyRoute,
+}
+
+const AppSettingsRouteWithChildren = AppSettingsRoute._addFileChildren(
+  AppSettingsRouteChildren,
+)
 
 interface AppRouteChildren {
   AppAgentRoute: typeof AppAgentRoute
   AppDashboardRoute: typeof AppDashboardRoute
-  AppGoalsRoute: typeof AppGoalsRoute
+  AppGoalsRoute: typeof AppGoalsRouteWithChildren
+  AppReviewRoute: typeof AppReviewRoute
   AppSchedulerRoute: typeof AppSchedulerRoute
-  AppSettingsRoute: typeof AppSettingsRoute
+  AppSettingsRoute: typeof AppSettingsRouteWithChildren
+  AppTimelineRoute: typeof AppTimelineRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAgentRoute: AppAgentRoute,
   AppDashboardRoute: AppDashboardRoute,
-  AppGoalsRoute: AppGoalsRoute,
+  AppGoalsRoute: AppGoalsRouteWithChildren,
+  AppReviewRoute: AppReviewRoute,
   AppSchedulerRoute: AppSchedulerRoute,
-  AppSettingsRoute: AppSettingsRoute,
+  AppSettingsRoute: AppSettingsRouteWithChildren,
+  AppTimelineRoute: AppTimelineRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
@@ -226,6 +390,9 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  ForgotPasswordRoute: ForgotPasswordRoute,
+  OnboardingRoute: OnboardingRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
 }

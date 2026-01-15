@@ -6,6 +6,7 @@ import { Calendar, Clock, CheckCircle2, PlayCircle } from "lucide-react"
 import { api, type Doc } from "@flow-day/convex"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { calculateDuration } from "@/lib/date-utils"
 
 export const Route = createFileRoute("/_app/dashboard")({
   component: DashboardPage,
@@ -14,22 +15,13 @@ export const Route = createFileRoute("/_app/dashboard")({
 type Block = Doc<"blocks">
 type Goal = Doc<"goals">
 
-// Calculate duration in minutes from startTime and endTime strings (e.g., "09:00", "10:30")
-function calculateDuration(startTime: string, endTime: string): number {
-  const [startHours, startMinutes] = startTime.split(":").map(Number)
-  const [endHours, endMinutes] = endTime.split(":").map(Number)
-  const startTotal = startHours * 60 + startMinutes
-  const endTotal = endHours * 60 + endMinutes
-  return endTotal - startTotal
-}
-
 function DashboardPage() {
   const today = format(new Date(), "yyyy-MM-dd")
-  const schedule = useQuery(api.schedules.getScheduleByDate, { date: today })
-  const goals = useQuery(api.goals.list)
+  const blocks = useQuery(api.blocks.getByDate, { date: today })
+  const goals = useQuery(api.goals.getGoals)
 
-  const completedBlocks = schedule?.blocks?.filter((b: Block) => b.status === "completed").length ?? 0
-  const totalBlocks = schedule?.blocks?.length ?? 0
+  const completedBlocks = blocks?.filter((b: Block) => b.status === "completed").length ?? 0
+  const totalBlocks = blocks?.length ?? 0
 
   return (
     <div className="container max-w-6xl space-y-6 px-4 py-6">
@@ -81,13 +73,13 @@ function DashboardPage() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {schedule?.blocks?.find((b: Block) => b.status === "planned") ? (
+            {blocks?.find((b: Block) => b.status === "planned") ? (
               <>
                 <div className="text-lg font-bold truncate">
-                  {schedule.blocks.find((b: Block) => b.status === "planned")?.title || "Untitled"}
+                  {blocks.find((b: Block) => b.status === "planned")?.title || "Untitled"}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {schedule.blocks.find((b: Block) => b.status === "planned")?.startTime}
+                  {blocks.find((b: Block) => b.status === "planned")?.startTime}
                 </p>
               </>
             ) : (
@@ -109,7 +101,7 @@ function DashboardPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {!schedule?.blocks || schedule.blocks.length === 0 ? (
+          {!blocks || blocks.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <Calendar className="h-12 w-12 text-muted-foreground/50" />
               <p className="mt-4 text-muted-foreground">No schedule for today</p>
@@ -119,7 +111,7 @@ function DashboardPage() {
             </div>
           ) : (
             <div className="space-y-2">
-              {schedule.blocks.map((block: Block) => (
+              {blocks.map((block: Block) => (
                 <div
                   key={block._id}
                   className={`flex items-center gap-4 rounded-lg border p-4 transition-colors ${

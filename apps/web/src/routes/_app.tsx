@@ -1,8 +1,12 @@
-import { createFileRoute, Outlet, Link, useNavigate } from "@tanstack/react-router"
-import { Home, Target, Calendar, MessageSquare, Settings, LogOut, Menu } from "lucide-react"
-import { useState } from "react"
+import { createFileRoute, Outlet, Link, useNavigate, redirect } from "@tanstack/react-router"
+import { Home, Target, Calendar, MessageSquare, Settings, LogOut, Menu, Clock, BarChart3 } from "lucide-react"
+import { useState, useEffect } from "react"
+import { useQuery } from "convex/react"
+import { api } from "@flow-day/convex"
 
-import { useSession, signOut } from "@/lib/auth-client"
+import { signOut } from "@/lib/auth-client"
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
+import { FullPageLoading } from "@/components/ui/loading-spinner"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -14,44 +18,60 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 export const Route = createFileRoute("/_app")({
+  beforeLoad: ({ context, location }) => {
+    if (!context.auth.isAuthenticated) {
+      throw redirect({
+        to: "/sign-in",
+        search: {
+          redirect: location.pathname,
+        },
+      })
+    }
+  },
   component: AppLayout,
 })
 
 const navItems = [
+  { to: "/timeline", label: "Timeline", icon: Clock },
   { to: "/dashboard", label: "Dashboard", icon: Home },
   { to: "/goals", label: "Goals", icon: Target },
   { to: "/scheduler", label: "Scheduler", icon: Calendar },
   { to: "/agent", label: "AI Agent", icon: MessageSquare },
+  { to: "/review", label: "Review", icon: BarChart3 },
 ]
 
 function AppLayout() {
-  const { data: session, isPending } = useSession()
+  const { auth } = Route.useRouteContext()
   const navigate = useNavigate()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
-  // Show loading state while checking auth
-  if (isPending) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="animate-pulse text-lg">Loading...</div>
-      </div>
-    )
-  }
+  // Enable keyboard shortcuts
+  useKeyboardShortcuts()
 
-  // Redirect to sign-in if not authenticated
-  if (!session?.user) {
-    navigate({ to: "/sign-in" })
-    return null
-  }
+  // Check if user has completed onboarding
+  const currentUser = useQuery(api.users.getCurrent)
+
+  // Redirect to onboarding if not completed
+  useEffect(() => {
+    if (currentUser && currentUser.onboardingCompleted === false) {
+      navigate({ to: "/onboarding" })
+    }
+  }, [currentUser, navigate])
 
   const handleSignOut = async () => {
     await signOut()
     navigate({ to: "/" })
   }
 
-  const userInitials = session.user.name
-    ? session.user.name.split(" ").map((n: string) => n[0]).join("").toUpperCase()
-    : session.user.email?.charAt(0).toUpperCase() || "U"
+  // Show loading while checking auth/onboarding status
+  // currentUser is undefined while loading, null if not found (auth not synced yet)
+  if (currentUser === undefined || currentUser === null) {
+    return <FullPageLoading message="Loading your workspace..." />
+  }
+
+  const userInitials = auth.user?.name
+    ? auth.user.name.split(" ").map((n: string) => n[0]).join("").toUpperCase()
+    : auth.user?.email?.charAt(0).toUpperCase() || "U"
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -70,7 +90,7 @@ function AppLayout() {
             </Button>
 
             {/* Logo */}
-            <Link to="/dashboard" className="flex items-center gap-2 font-bold">
+            <Link to="/timeline" className="flex items-center gap-2 font-bold">
               <span className="text-xl">Flow Day</span>
             </Link>
           </div>
@@ -94,7 +114,7 @@ function AppLayout() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={session.user.image || undefined} alt={session.user.name || ""} />
+                  <AvatarImage src={auth.user?.image || undefined} alt={auth.user?.name || ""} />
                   <AvatarFallback>{userInitials}</AvatarFallback>
                 </Avatar>
               </Button>
@@ -102,8 +122,8 @@ function AppLayout() {
             <DropdownMenuContent align="end" className="w-56">
               <div className="flex items-center gap-2 p-2">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium">{session.user.name}</p>
-                  <p className="text-xs text-muted-foreground">{session.user.email}</p>
+                  <p className="text-sm font-medium">{auth.user?.name}</p>
+                  <p className="text-xs text-muted-foreground">{auth.user?.email}</p>
                 </div>
               </div>
               <DropdownMenuSeparator />

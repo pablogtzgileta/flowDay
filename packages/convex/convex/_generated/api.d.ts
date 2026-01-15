@@ -23,6 +23,8 @@ import type * as scheduling from "../scheduling.js";
 import type * as travelTimeCache from "../travelTimeCache.js";
 import type * as users from "../users.js";
 import type * as utils_time from "../utils/time.js";
+import type * as utils_travelTime from "../utils/travelTime.js";
+import type * as utils_validation from "../utils/validation.js";
 import type * as weeklyReview from "../weeklyReview.js";
 
 import type {
@@ -47,6 +49,8 @@ declare const fullApi: ApiFromModules<{
   travelTimeCache: typeof travelTimeCache;
   users: typeof users;
   "utils/time": typeof utils_time;
+  "utils/travelTime": typeof utils_travelTime;
+  "utils/validation": typeof utils_validation;
   weeklyReview: typeof weeklyReview;
 }>;
 

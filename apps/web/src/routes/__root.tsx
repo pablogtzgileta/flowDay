@@ -1,26 +1,34 @@
-import { Outlet, createRootRoute } from "@tanstack/react-router"
+import { Outlet, createRootRouteWithContext } from "@tanstack/react-router"
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools"
-import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react"
-import { QueryClientProvider } from "@tanstack/react-query"
 import { Toaster } from "sonner"
 
-import { convex, queryClient } from "@/lib/convex"
-import { authClient } from "@/lib/auth-client"
+interface AuthState {
+  isAuthenticated: boolean
+  user: {
+    id: string
+    name?: string | null
+    email?: string | null
+    image?: string | null
+  } | null
+  isPending: boolean
+}
 
-export const Route = createRootRoute({
+interface RouterContext {
+  auth: AuthState
+}
+
+export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootComponent,
 })
 
 function RootComponent() {
   return (
-    <ConvexBetterAuthProvider client={convex} authClient={authClient}>
-      <QueryClientProvider client={queryClient}>
-        <div className="min-h-screen bg-background text-foreground">
-          <Outlet />
-        </div>
-        <Toaster richColors position="top-right" />
-        {import.meta.env.DEV && <TanStackRouterDevtools position="bottom-right" />}
-      </QueryClientProvider>
-    </ConvexBetterAuthProvider>
+    <>
+      <div className="min-h-screen bg-background text-foreground">
+        <Outlet />
+      </div>
+      <Toaster richColors position="top-right" />
+      {import.meta.env.DEV && <TanStackRouterDevtools position="bottom-right" />}
+    </>
   )
 }

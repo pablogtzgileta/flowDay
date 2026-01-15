@@ -1,5 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute, Link, Navigate } from "@tanstack/react-router"
 import { useSession } from "@/lib/auth-client"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -11,24 +12,14 @@ function HomePage() {
   if (isPending) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="animate-pulse text-lg">Loading...</div>
+        <LoadingSpinner size="lg" />
       </div>
     )
   }
 
+  // Redirect authenticated users directly to Timeline
   if (session?.user) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-6">
-        <h1 className="text-4xl font-bold">Welcome back, {session.user.name || session.user.email}</h1>
-        <p className="text-muted-foreground">You are signed in.</p>
-        <Link
-          to="/dashboard"
-          className="rounded-lg bg-primary px-6 py-3 text-primary-foreground hover:bg-primary/90"
-        >
-          Go to Dashboard
-        </Link>
-      </div>
-    )
+    return <Navigate to="/timeline" />
   }
 
   return (
@@ -42,6 +33,7 @@ function HomePage() {
       <div className="flex gap-4">
         <Link
           to="/sign-in"
+          search={{ redirect: "/timeline" }}
           className="rounded-lg bg-primary px-6 py-3 text-primary-foreground hover:bg-primary/90"
         >
           Sign In

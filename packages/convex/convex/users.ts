@@ -1,6 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { getAuthUser, requireAuth } from "./auth";
+import { authComponent, getAuthUser, requireAuth } from "./auth";
 import { ENERGY_PRESETS } from "./scheduling";
 
 // Ensure user document exists after authentication
@@ -8,13 +8,14 @@ import { ENERGY_PRESETS } from "./scheduling";
 export const ensureUser = mutation({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    // Use authComponent.getAuthUser which validates the session
+    // (ctx.auth.getUserIdentity() does NOT validate the session)
+    const authUser = await authComponent.getAuthUser(ctx);
 
     // Check if user already exists
     const existingUser = await ctx.db
       .query("users")
-      .withIndex("by_auth_user", (q) => q.eq("authUserId", identity.subject))
+      .withIndex("by_auth_user", (q) => q.eq("authUserId", authUser.userId))
       .first();
 
     if (existingUser) {
@@ -26,9 +27,9 @@ export const ensureUser = mutation({
 
     // Create new user with defaults
     const userId = await ctx.db.insert("users", {
-      authUserId: identity.subject,
-      email: identity.email || "",
-      name: identity.name,
+      authUserId: authUser.userId,
+      email: authUser.email || "",
+      name: authUser.name,
       onboardingCompleted: false,
       preferences: {
         wakeTime: "07:00",

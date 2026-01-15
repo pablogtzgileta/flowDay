@@ -21,8 +21,11 @@ export interface Message {
 export interface AgentState {
   messages: Message[]
   connectionStatus: 'disconnected' | 'connecting' | 'connected'
+  error: string | null
   addMessage: (message: Message) => boolean
   setConnectionStatus: (status: AgentState['connectionStatus']) => void
+  setError: (error: string | null) => void
+  clearError: () => void
   clearMessages: () => void
 }
 
@@ -41,6 +44,7 @@ export const useAgentStore = create<AgentState>()(
     (set) => ({
       messages: [],
       connectionStatus: 'disconnected',
+      error: null,
 
       addMessage: (message): boolean => {
         if (!isValidMessage(message)) {
@@ -71,6 +75,10 @@ export const useAgentStore = create<AgentState>()(
         false,
         'setConnectionStatus'
       ),
+
+      setError: (error) => set({ error }, false, 'setError'),
+
+      clearError: () => set({ error: null }, false, 'clearError'),
 
       clearMessages: () => set({ messages: [] }, false, 'clearMessages'),
     }),

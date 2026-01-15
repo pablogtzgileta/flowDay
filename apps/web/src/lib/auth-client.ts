@@ -12,7 +12,10 @@ export const authClient = createAuthClient({
   plugins: [
     convexClient(),      // Required for Convex JWT tokens
     // @ts-expect-error - Type mismatch between better-auth and @convex-dev/better-auth plugin types
-    crossDomainClient(), // Required for SPAs on different domains
+    crossDomainClient({
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+      storagePrefix: "better-auth",
+    }), // Required for SPAs on different domains
   ],
 })
 

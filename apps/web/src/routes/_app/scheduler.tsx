@@ -145,8 +145,8 @@ function SchedulerPage() {
         </p>
       </div>
 
-      {/* Week grid */}
-      <div className="grid gap-4 md:grid-cols-7">
+      {/* Week grid - responsive: 1 col mobile, 2 col tablet, 7 col desktop */}
+      <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
         {weekDays.map((day) => {
           const dateStr = format(day, "yyyy-MM-dd")
           const isToday = dateStr === today
@@ -166,8 +166,8 @@ function SchedulerPage() {
         })}
       </div>
 
-      {/* Legend */}
-      <div className="flex items-center justify-center gap-6 text-sm">
+      {/* Legend - wraps on mobile */}
+      <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-sm">
         <div className="flex items-center gap-2">
           <div className="h-3 w-3 rounded bg-secondary" />
           <span className="text-muted-foreground">Planned</span>

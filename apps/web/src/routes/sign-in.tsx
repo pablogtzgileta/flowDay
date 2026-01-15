@@ -1,8 +1,10 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
+import { createFileRoute, Link, useNavigate, redirect } from "@tanstack/react-router"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
+import { useMutation } from "convex/react"
+import { api } from "@flow-day/convex"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,14 +20,58 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>
 
+const DEFAULT_REDIRECT = "/dashboard"
+
+const normalizeRedirectHref = (value?: string) => {
+  if (!value || typeof value !== "string") {
+    return DEFAULT_REDIRECT
+  }
+
+  const trimmed = value.trim()
+
+  if (!trimmed) {
+    return DEFAULT_REDIRECT
+  }
+
+  if (trimmed.startsWith("/") && !trimmed.startsWith("//")) {
+    const url = new URL(trimmed, "http://localhost")
+    return `${url.pathname}${url.search}${url.hash}`
+  }
+
+  if (typeof window !== "undefined") {
+    try {
+      const url = new URL(trimmed, window.location.origin)
+
+      if (url.origin === window.location.origin) {
+        return `${url.pathname}${url.search}${url.hash}`
+      }
+    } catch {
+      return DEFAULT_REDIRECT
+    }
+  }
+
+  return DEFAULT_REDIRECT
+}
+
 export const Route = createFileRoute("/sign-in")({
+  validateSearch: (search) => ({
+    redirect: (search.redirect as string) || DEFAULT_REDIRECT,
+  }),
+  beforeLoad: ({ context, search }) => {
+    if (context.auth.isAuthenticated) {
+      throw redirect({ to: normalizeRedirectHref(search.redirect) })
+    }
+  },
   component: SignInPage,
 })
 
 function SignInPage() {
+  const { redirect: redirectUrl } = Route.useSearch()
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const ensureUser = useMutation(api.users.ensureUser)
+  const redirectHref = normalizeRedirectHref(redirectUrl)
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -50,7 +96,10 @@ function SignInPage() {
         return
       }
 
-      navigate({ to: "/dashboard" })
+      // Ensure user document exists in Convex
+      await ensureUser({})
+
+      navigate({ to: redirectHref })
     } catch (err) {
       setError(err instanceof Error ? err.message : "An unexpected error occurred")
     } finally {
@@ -112,6 +161,14 @@ function SignInPage() {
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Signing in..." : "Sign In"}
               </Button>
+              <div className="text-center">
+                <Link
+                  to="/forgot-password"
+                  className="text-sm text-muted-foreground hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
             </form>
           </Form>
         </CardContent>

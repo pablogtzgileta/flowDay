@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
+import { createFileRoute, Link, useNavigate, redirect } from "@tanstack/react-router"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -24,6 +24,11 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>
 
 export const Route = createFileRoute("/sign-up")({
+  beforeLoad: ({ context }) => {
+    if (context.auth.isAuthenticated) {
+      throw redirect({ to: "/dashboard" })
+    }
+  },
   component: SignUpPage,
 })
 
@@ -58,7 +63,9 @@ function SignUpPage() {
         return
       }
 
-      navigate({ to: "/dashboard" })
+      // User profile is automatically created by Better Auth triggers
+      // Redirect to onboarding for new users
+      navigate({ to: "/onboarding" })
     } catch (err) {
       setError(err instanceof Error ? err.message : "An unexpected error occurred")
     } finally {
@@ -162,7 +169,11 @@ function SignUpPage() {
         <CardFooter className="justify-center">
           <p className="text-sm text-muted-foreground">
             Already have an account?{" "}
-            <Link to="/sign-in" className="text-primary hover:underline">
+            <Link
+              to="/sign-in"
+              search={{ redirect: "/dashboard" }}
+              className="text-primary hover:underline"
+            >
               Sign in
             </Link>
           </p>
